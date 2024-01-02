@@ -50,89 +50,82 @@ const reduceWordDict = (stringArray, wordDict, debug = false) => {
   wordIdsToDelete.forEach((wid) => {
     wordDict.splice(wid, 1);
   });
-  if (debug) console.log(
-    `wordDict length reduced from ${originalWordDictLength} to ${wordDict.length}`,
-    wordDict
-  );
-};
-
-const isWordInString = (
-  stringParts,
-  wordDict,
-  i,
-  usedWords,
-  debug = false
-) => {
   if (debug)
     console.log(
-      usedWords,
-      stringParts
+      `wordDict length reduced from ${originalWordDictLength} to ${wordDict.length}`,
+      wordDict
     );
+};
+
+const isWordInString = (stringParts, wordDict, i, usedWords, debug = false) => {
+  if (debug) console.log(usedWords, stringParts);
   const w = wordDict[i];
-  usedWords.push(w);
+  const stringPartsOneLevelDown = stringParts.map((stp) => stp);
 
   // remove w from strings
+  let wordFoundAtLeastOnce = false;
   for (let si = 0; si < stringParts.length; si++) {
     const s = stringParts[si];
-    if (debug) console.log('current stringPart', s)
+    if (debug) console.log(`current stringPart ${s}, word is ${w}`);
 
     if (s.indexOf(w) > -1) {
+      wordFoundAtLeastOnce = true;
       const sSplitW = s.split(w).filter((spl) => spl.length > 0);
 
-      // attempted to join first, which doesn't work. in this case, false is expected: "cbca", ["bc","ca"]. what happens is: "cbca".split("bc") => "ca" => true
-      //s = sSplitW.filter((sp) => sp != w).join('');
-
-      stringParts.splice(si, 1);
+      stringPartsOneLevelDown.splice(si, 1);
       // in case the same stringPart occures more than once
-      while (stringParts.indexOf(w) > -1) {
-        stringParts.splice(stringParts.indexOf(w), 1);
+      while (stringPartsOneLevelDown.indexOf(w) > -1) {
+        stringPartsOneLevelDown.splice(stringPartsOneLevelDown.indexOf(w), 1);
       }
-      stringParts.push(...sSplitW.filter((sp) => sp != w && sp.length > 0));
+      stringPartsOneLevelDown.push(
+        ...sSplitW.filter((sp) => sp != w && sp.length > 0)
+      );
       if (debug)
         console.log(
-          `is there a ${w} in ${s}? => ${sSplitW}. These are the remaining stringParts: ${stringParts}. and this is the current id ${si}`
+          `is there a ${w} in ${s}? => ${sSplitW}. These are the remaining stringParts: ${stringPartsOneLevelDown}.`
         );
 
       // if nothing is left from the string, we succeeded
-      if (stringParts.length == 0) {
+      if (stringPartsOneLevelDown.length == 0) {
         return true;
       }
-    } else {
-      if (debug)
-        console.log(
-          `there is no ${w} in ${s}. abandoning this order of words.`
-        );
-      return false;
     }
+  }
 
-    // reduct wordDict length by removing all words that have no matches in any member of stringParts
-    const wordDictOneLevelDown = wordDict.map((w) => w);
-    reduceWordDict(stringParts, wordDictOneLevelDown, debug);
-
-    // otherwise we need to try out all combinations of all other array members, that have not been tried out before
-    for (let j = 0; j < wordDictOneLevelDown.length; j++) {
-        if (debug) console.log(" => one down?", usedWords, wordDictOneLevelDown[j])
-      if (!usedWords.includes(wordDictOneLevelDown[j])) {
-        // deep copy arrays that have been filled up until this level
-        const usedWordsOneLevelDown = usedWords.map((id) => id);
-        const stringPartsOneLevelDown = stringParts.map((stp) => stp);
-        if (
-          isWordInString(
-            stringPartsOneLevelDown,
-            wordDictOneLevelDown,
-            j,
-            usedWordsOneLevelDown,
-            debug
-          ) == true
-        )
-          return true;
-      }
+  // word has not been found in one of the stringParts
+  if (!wordFoundAtLeastOnce) {
+    if (debug) {
+      console.log(`there is no ${w} in ${s}. abandoning this order of words.`);
     }
+    return false;
+  }
 
-    // if there is something left in the string but no dict words to try left, we failed
-    if (usedWords.length == wordDict.length) {
-      return false;
+  // reduct wordDict length by removing all words that have no matches in any member of stringParts
+  const wordDictOneLevelDown = wordDict.map((w) => w);
+  reduceWordDict(stringPartsOneLevelDown, wordDictOneLevelDown, debug);
+
+  // otherwise we need to try out all combinations of all other array members, that have not been tried out before
+  for (let j = 0; j < wordDictOneLevelDown.length; j++) {
+    if (!usedWords.includes(wordDictOneLevelDown[j])) {
+      // deep copy arrays that have been filled up until this level
+      const usedWordsOneLevelDown = usedWords.map((id) => id);
+      usedWordsOneLevelDown.push(w);
+      if (
+        isWordInString(
+          stringPartsOneLevelDown,
+          wordDictOneLevelDown,
+          j,
+          usedWordsOneLevelDown,
+          debug
+        ) == true
+      )
+        return true;
     }
+  }
+
+  // if there is something left in the string but no dict words to try left, we failed
+  if (usedWords.length == wordDict.length) {
+    return false;
   }
 };
 
@@ -146,68 +139,65 @@ console.log(
 starttime = Date.now();
 console.log(
   "assert true 50",
-  wordBreak(
-    "bccdbacdbdacddabbaaaadababadad",
-    [
-      "cbc",
-      "bcda",
-      "adb",
-      "ddca",
-      "bad",
-      "bbb",
-      "dad",
-      "dac",
-      "ba",
-      "aa",
-      "bd",
-      "abab",
-      "bb",
-      "dbda",
-      "cb",
-      "caccc",
-      "d",
-      "dd",
-      "aadb",
-      "cc",
-      "b",
-      "bcc",
-      "bcd",
-      "cd",
-      "cbca",
-      "bbd",
-      "ddd",
-      "dabb",
-      "ab",
-      "acd",
-      "a",
-      "bbcc",
-      "cdcbd",
-      "cada",
-      "dbca",
-      "ac",
-      "abacd",
-      "cba",
-      "cdb",
-      "dbac",
-      "aada",
-      "cdcda",
-      "cdc",
-      "dbc",
-      "dbcb",
-      "bdb",
-      "ddbdd",
-      "cadaa",
-      "ddbc",
-      "babb",
-    ]
-  ),
+  wordBreak("bccdbacdbdacddabbaaaadababadad", [
+    "cbc",
+    "bcda",
+    "adb",
+    "ddca",
+    "bad",
+    "bbb",
+    "dad",
+    "dac",
+    "ba",
+    "aa",
+    "bd",
+    "abab",
+    "bb",
+    "dbda",
+    "cb",
+    "caccc",
+    "d",
+    "dd",
+    "aadb",
+    "cc",
+    "b",
+    "bcc",
+    "bcd",
+    "cd",
+    "cbca",
+    "bbd",
+    "ddd",
+    "dabb",
+    "ab",
+    "acd",
+    "a",
+    "bbcc",
+    "cdcbd",
+    "cada",
+    "dbca",
+    "ac",
+    "abacd",
+    "cba",
+    "cdb",
+    "dbac",
+    "aada",
+    "cdcda",
+    "cdc",
+    "dbc",
+    "dbcb",
+    "bdb",
+    "ddbdd",
+    "cadaa",
+    "ddbc",
+    "babb",
+  ]),
   Date.now() - starttime
 ); /// too time-consuming even with wirdDict reduction
 
 starttime = Date.now();
 console.log(
   "assert true 2",
-  wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"], true),
+  wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]),
   Date.now() - starttime
 );
 
@@ -284,8 +274,41 @@ console.log(
   Date.now() - starttime
 );
 
-  starttime = Date.now();
-  console.log('assert false 10', wordBreak("carshitthemoonfallingfromtheskies", ["car","ca","rs", "sk", "skies", "moo", "fall", "falling", "ing", "shit"]), Date.now()-starttime);
-  
-  starttime = Date.now();
-  console.log('assert true 13', wordBreak("carshitthemoonfallingfromtheskies", ["car","ca","rs", "sk", "skies", "moon", "fall", "falling", "ing", "shit", "hit", "the", "from"]), Date.now()-starttime);
+starttime = Date.now();
+console.log(
+  "assert false 10",
+  wordBreak("carshitthemoonfallingfromtheskies", [
+    "car",
+    "ca",
+    "rs",
+    "sk",
+    "skies",
+    "moo",
+    "fall",
+    "falling",
+    "ing",
+    "shit",
+  ]),
+  Date.now() - starttime
+);
+
+starttime = Date.now();
+console.log(
+  "assert true 13",
+  wordBreak("carshitthemoonfallingfromtheskies", [
+    "car",
+    "ca",
+    "rs",
+    "sk",
+    "skies",
+    "moon",
+    "fall",
+    "falling",
+    "ing",
+    "shit",
+    "hit",
+    "the",
+    "from",
+  ]),
+  Date.now() - starttime
+);

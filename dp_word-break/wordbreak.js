@@ -136,6 +136,17 @@ console.log(
   Date.now() - starttime
 );
 
+// the issue is: "a space-separated sequence of words" => think from left to right!
+// ["dd","ad","da","b"] => "dd ad dd b dd da dd"
+// the code does this: is there a dd in ddadddbdddadd? => a,db,da. These are the remaining stringParts: a,db,da. 
+starttime = Date.now();
+console.log(
+  "assert true 3",
+  wordBreak("ddadddbdddadd", ["dd","ad","da","b"]),
+  Date.now() - starttime,
+  true
+);
+
 starttime = Date.now();
 console.log(
   "assert true 50",

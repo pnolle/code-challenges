@@ -19,6 +19,10 @@ var wordBreak = function (s, wordDict, debug = false) {
 
   // reduce wordDict one time for complete string
   reduceWordDict(s, wordDict, debug);
+  if (!checkChars(s, wordDict, debug)) {
+    if (debug) console.log(`☠️ not all characters from string "${s}" could be found in wordDict.`, wordDict, checkChars(s, wordDict, debug));
+    return false;
+  }
   
   for (let i = 0; i < wordDict.length; i++) {
     if (findWord(s, wordDict, i, [], debug) == true) return true;
@@ -52,6 +56,10 @@ const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
 
       // reduce wordDict for new string
       reduceWordDict(newS, oneLevelDeeperWordDict, debug);
+      if (!checkChars(newS, oneLevelDeeperWordDict, debug)) {
+        if (debug) console.log(`☠️ not all characters from string "${newS}" could not be found in wordDict.`, oneLevelDeeperWordDict);
+        return false;
+      }
       // if no words left in dictionary, this attempt is not successful. continuing to next word.
       if (oneLevelDeeperWordDict.length == 0) {
         if (debug) console.log(`❌ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
@@ -75,7 +83,23 @@ const reduceWordDict = (s, wordDict, debug = false) => {
       wordDict.splice(wordDict.indexOf(wordDictOriginal[i]), 1);
     }
   }
+  // sort decreasing by length
+  wordDict.sort((a,b) => b.length - a.length);
   if (debug) { console.log(`wordDict length reduced for string "${s}" from ${wordDictOriginal.length} to ${wordDict.length}`, wordDictOriginal, wordDict); }
+};
+
+// check for chars in string that are not in any dict word
+const checkChars = (s, wordDict, debug = false) => {
+  const wordDictCharsUnique = [...wordDict.join('')].reduce((acc, curr) => { return acc.includes(curr) ? acc : acc + curr}, '');
+  const stringCharsUnique = [...s].reduce((acc, curr) => { return acc.includes(curr) ? acc : acc + curr}, '');
+
+  for (let i = 0; i < stringCharsUnique.length; i++) {
+    const element = stringCharsUnique[i];
+    if (!wordDictCharsUnique.includes(element)) {
+      return false;
+    }
+  };
+  return true;
 };
 
 
@@ -85,6 +109,11 @@ let msg = '';
 let result = false;
 
 // tests
+starttime = Date.now();
+result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", ["a","aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa"]);
+msg = "assert false 10";
+console.assert(!result, [msg, Date.now() - starttime]);
+
 starttime = Date.now();
 result = wordBreak("cars", ["car", "ca", "rs"]);
 msg = "assert true 3";

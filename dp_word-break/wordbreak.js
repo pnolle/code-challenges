@@ -21,7 +21,7 @@ var wordBreak = function (s, wordDict, debug = false) {
   reduceWordDict(s, wordDict, debug);
   
   for (let i = 0; i < wordDict.length; i++) {
-    let usedWords = [];
+    let usedWords = []; // only for logging purposes
     if (findWord(s, wordDict, i, usedWords, debug) == true) return true;
   }
   return false;
@@ -32,8 +32,8 @@ const findWord = (s, wordDict, wi, usedWords, debug = false) => {
     const word = wordDict[wi];
     const oneLevelDeeperWordDict = wordDict.map((u) => u);
 
-    // word already used on same level?
-    if (usedWords.includes(word)) return false;
+    // word already used on same level? => skip because words can be used multiple times.
+    // if (usedWords.includes(word)) return false;
 
     // word found in string?
     if (s.startsWith(word)) {
@@ -85,12 +85,12 @@ let result = false;
 
 // tests
 starttime = Date.now();
-result = wordBreak("cars", ["car", "ca", "rs"], true);
+result = wordBreak("cars", ["car", "ca", "rs"]);
 msg = "assert true 3";
 console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"]);
+result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"], true);
 msg = "assert true 3";
 console.assert(result, [msg, Date.now() - starttime]);
 

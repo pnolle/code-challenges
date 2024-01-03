@@ -21,14 +21,14 @@ var wordBreak = function (s, wordDict, debug = false) {
   reduceWordDict(s, wordDict, debug);
   
   for (let i = 0; i < wordDict.length; i++) {
-    let usedWords = []; // only for logging purposes
-    if (findWord(s, wordDict, i, usedWords, debug) == true) return true;
+    if (findWord(s, wordDict, i, [], debug) == true) return true;
   }
+  if (debug) console.log(`❌ beginning of string ${s} could not be matched with any words from wordDict.`, wordDict);
   return false;
 };
 
 // match words from dict in string
-const findWord = (s, wordDict, wi, usedWords, debug = false) => {
+const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
     const word = wordDict[wi];
     const oneLevelDeeperWordDict = wordDict.map((u) => u);
 
@@ -37,8 +37,8 @@ const findWord = (s, wordDict, wi, usedWords, debug = false) => {
 
     // word found in string?
     if (s.startsWith(word)) {
-      // push word to usedWords
-      usedWords.push(word);
+      // push word to usedWords (only for logging purposes when debug enabled)
+      if (debug) usedWords.push(word);
 
       // remove word from string
       const newS = s.substring(word.length);
@@ -59,8 +59,9 @@ const findWord = (s, wordDict, wi, usedWords, debug = false) => {
       }
 
       for (let wj = 0; wj < oneLevelDeeperWordDict.length; wj++) {
-        // pass deep copy of usedWords to keep the original for more attempts on same level
-        const oneLevelDeeperUsedWords = usedWords.map((u) => u);
+        let oneLevelDeeperUsedWords = [];
+        // pass deep copy of usedWords to keep the original for more attempts on same level (only for logging purposes when debug enabled)
+        if (debug) oneLevelDeeperUsedWords = usedWords.map((u) => u);
         if (findWord(newS, oneLevelDeeperWordDict, wj, oneLevelDeeperUsedWords, debug) == true) return true;
       }
   }
@@ -90,7 +91,7 @@ msg = "assert true 3";
 console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"], true);
+result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"]);
 msg = "assert true 3";
 console.assert(result, [msg, Date.now() - starttime]);
 

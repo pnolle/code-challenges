@@ -16,55 +16,79 @@ var wordBreak = function (s, wordDict, debug = true) {
   // X reduct wordDict on every sub-level
   // - memoization of string results not possible because different words are taken out
   // - does it make sense to sort the list by length and start with the shortest words?
+  if (debug) console.log(`🚀 starting new string "${s}" with wordDict`, wordDict);
 
   // reduce wordDict one time for complete string
   reduceWordDict(s, wordDict, debug);
   if (!checkChars(s, wordDict, debug)) {
-    if (debug) console.log(`☠️ not all characters from string "${s}" could be found in wordDict.`, wordDict, checkChars(s, wordDict, debug));
+    if (debug) console.log(`⚠️ not all characters from string "${s}" could be found in wordDict.`, wordDict, checkChars(s, wordDict, debug));
     return false;
   }
   
+  let levelCounter = 0;
   for (let i = 0; i < wordDict.length; i++) {
-    if (findWord(s, wordDict, i, [], debug) == true) return true;
+    if (findWord(s, wordDict, i, [], levelCounter, debug) == true) return true;
   }
-  if (debug) console.log(`☠️ string "${s}" could not be matched with any words from wordDict.`, wordDict);
+  if (debug) console.log(`❌ string "${s}" could not be created from wordDict.`, wordDict);
   return false;
 };
 
 // match words from dict in string
-const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
+const findWord = (s, wordDict, wi, usedWords, levelCounter, debug = false) => {
+    levelCounter++;
     const word = wordDict[wi];
     const oneLevelDeeperWordDict = wordDict.map((u) => u);
 
+    // if string is an exact match with one from the wordDict, we succeeded
+    if (checkExactMatch(s, wordDict, debug)) {
+      if (debug) console.log(`[level ${levelCounter}] ✅ rest of string ${s} is an exact match with one of the dictionary words. word order successful.`, usedWords);
+      return true;
+    }
+
     // word found in string?
     if (s.startsWith(word)) {
-      // push word to usedWords (only for logging purposes when debug enabled)
-      if (debug) usedWords.push(word);
+      let foundWordOnSameLevelCounter = 1;
+      let newS = s;
 
-      // remove word from string
-      const newS = s.substring(word.length);
-      if (debug) console.log(`found word "${word}" in "${s}". new string: "${newS}"`);
+      // performance update: if word is found on same level more than once, we remove it a couple of times at once
+      while (newS.startsWith(word)) {
+        // if string is an exact match with one from the wordDict, we succeeded
+        // we need to check here again because we might have removed part of the last word if then two last words begin equally
+        if (checkExactMatch(newS, wordDict, debug)) {
+          if (debug) console.log(`[level ${levelCounter}] ✅ rest of string ${s} is an exact match with one of the dictionary words. word order successful.`, usedWords);
+          return true;
+        }
+        
+        // push word to usedWords (only for logging purposes when debug enabled)
+        if (debug) usedWords.push(word);
 
-      // if string is empty, the word order was successful
-      if (newS.length == 0) {
-        if (debug) console.log(`✅ string is empty. word order successful.`, usedWords);
-        return true;
+        // remove word from string
+        newS = newS.substring(word.length);
+        if (debug) console.log(`[level ${levelCounter}] found word "${word}" in "${s} (${foundWordOnSameLevelCounter}x on same level)". new string: "${newS}"`, usedWords);
+
+        // if string is empty, the word order was successful
+        if (newS.length == 0) {
+          if (debug) console.log(`[level ${levelCounter}] ✅ string is empty. word order successful.`, usedWords);
+          return true;
+        }
+        foundWordOnSameLevelCounter++;
       }
 
-      // reduce wordDict for new string
-      reduceWordDict(newS, oneLevelDeeperWordDict, debug);
-      if (!checkChars(newS, oneLevelDeeperWordDict, debug)) {
-        if (debug) console.log(`☠️ not all characters from string "${newS}" could not be found in wordDict.`, oneLevelDeeperWordDict);
-        return false;
-      }
       // if newS does not begin with one of the words in the dictionary, it's not worth going deeper.
       if (!checkWordsOnSameLevel(newS, oneLevelDeeperWordDict, debug)) {
-        if (debug) console.log(`❌ string "${newS}" does not begin with one of the words from wordDict.`, oneLevelDeeperWordDict);
+        if (debug) console.log(`[level ${levelCounter}] ⚠️ string "${newS}" does not begin with one of the words from wordDict.`, oneLevelDeeperWordDict);
         return false;
       }
+      // reduce wordDict for new string
+      reduceWordDict(newS, oneLevelDeeperWordDict, debug);
       // if no words left in dictionary, this attempt is not successful
       if (oneLevelDeeperWordDict.length == 0) {
-        if (debug) console.log(`❌ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
+        if (debug) console.log(`[level ${levelCounter}] ⚠️ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
+        return false;
+      }
+      // if there are still words in the dict, check chars
+      if (!checkChars(newS, oneLevelDeeperWordDict, debug)) {
+        if (debug) console.log(`[level ${levelCounter}] ⚠️ not all characters from string "${newS}" could not be found in wordDict.`, oneLevelDeeperWordDict);
         return false;
       }
 
@@ -72,8 +96,10 @@ const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
         let oneLevelDeeperUsedWords = [];
         // pass deep copy of usedWords to keep the original for more attempts on same level (only for logging purposes when debug enabled)
         if (debug) oneLevelDeeperUsedWords = usedWords.map((u) => u);
-        if (findWord(newS, oneLevelDeeperWordDict, wj, oneLevelDeeperUsedWords, debug) == true) return true;
+        if (findWord(newS, oneLevelDeeperWordDict, wj, oneLevelDeeperUsedWords, levelCounter, debug) == true) return true;
       }
+      // if no matches
+      return false;
   }
 }
 
@@ -87,7 +113,7 @@ const reduceWordDict = (s, wordDict, debug = false) => {
   }
   // sort decreasing by length => longer words first might reduce the amount of words to check
   wordDict.sort((a,b) => b.length - a.length);
-  if (debug) { console.log(`wordDict length reduced for string "${s}" from ${wordDictOriginal.length} to ${wordDict.length}`, wordDictOriginal, wordDict); }
+  if (debug) { console.log(`wordDict length reduced for string "${s}" from ${wordDictOriginal.length} to ${wordDict.length}`, wordDict); }
 };
 
 // check for chars in string that are not in any dict word
@@ -114,6 +140,16 @@ const checkWordsOnSameLevel = (s, wordDict, debug = false) => {
   return false;
 };
 
+// check if string startts with any of the words in the dict
+const checkExactMatch = (s, wordDict, debug = false) => {
+  for (let i = 0; i < wordDict.length; i++) {
+    if (s === wordDict[i]) {
+      return true;
+    }
+  };
+  return false;
+};
+
 
 // vars
 let starttime = undefined;
@@ -121,15 +157,15 @@ let msg = '';
 let result = false;
 
 // tests
-starttime = Date.now();
-result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ["aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa","ba"], true);
-msg = "assert false 10";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ["aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa","ba"], true);
+// msg = "assert false 10";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", ["a","aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa"]);
-msg = "assert false 10";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", ["a","aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa"]);
+// msg = "assert false 10";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
 // starttime = Date.now();
 // result = wordBreak("cars", ["car", "ca", "rs"]);
@@ -197,10 +233,10 @@ console.assert(!result, [msg, Date.now() - starttime]);
 // msg = "assert true 50";
 // console.assert(result, [msg, Date.now() - starttime]);
 
-// starttime = Date.now();
-// result = wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]);
-// msg = "assert true 2";
-// console.assert(result, [msg, Date.now() - starttime]);
+starttime = Date.now();
+result = wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]);
+msg = "assert true 2";
+console.assert(result, [msg, Date.now() - starttime]);
 
 // starttime = Date.now();
 // result = wordBreak("ccaccc", ["cc", "bb", "aa", "bc", "ac", "ca", "ba", "cb"]);
@@ -228,7 +264,7 @@ console.assert(!result, [msg, Date.now() - starttime]);
 // console.assert(!result, [msg, Date.now() - starttime]);
 
 // starttime = Date.now();
-// result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]);
+// result = wordBreak("carsrsrsrsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]);
 // msg = "assert true 6";
 // console.assert(result, [msg, Date.now() - starttime]);
 

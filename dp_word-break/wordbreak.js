@@ -3,7 +3,7 @@
  * @param {string[]} wordDict
  * @return {boolean}
  */
-var wordBreak = function (s, wordDict, debug = false) {
+var wordBreak = function (s, wordDict, debug = true) {
   // basic problem:
   // - find out the right combination of words from the dict that give a valid result
   // what do we know:

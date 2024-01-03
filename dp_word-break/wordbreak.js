@@ -17,117 +17,114 @@ var wordBreak = function (s, wordDict, debug = false) {
   // - memoization of string results not possible because different words are taken out
   // - does it make sense to sort the list by length and start with the shortest words?
 
-  reduceWordDict([s], wordDict, debug);
+  reduceWordDict(s, wordDict, debug);
+  return findWord(s, wordDict, debug);
 
+  // for (let i = 0; i < wordDict.length; i++) {
+  //   let usedWords = [];
+  //   let stringParts = [s];
+  //   if (isWordInString(stringParts, wordDict, i, usedWords, debug) == true)
+  //     return true;
+  // }
+};
+
+// match words from dict in string
+const findWord = (s, wordDict, debug = false) => {
   for (let i = 0; i < wordDict.length; i++) {
-    let usedWords = [];
-    let stringParts = [s];
-    if (isWordInString(stringParts, wordDict, i, usedWords, debug) == true)
-      return true;
+    if (s.startsWith(wordDict[i])) {
+      const newS = s.substring(wordDict[i].length);
+      if (debug) console.log(`found ${wordDict[i]} in ${s}. new s: ${newS}`);
+      if (newS.length == 0) return true;
+
+      reduceWordDict(newS, wordDict, debug);
+      return findWord(newS, wordDict, debug);
+    }
   }
   return false;
-};
+}
 
 // removing every word that has no match in one of the strings
-const reduceWordDict = (stringArray, wordDict, debug = false) => {
-  const originalWordDictLength = wordDict.length;
-  const wordIdsToKeep = [];
-  stringArray.forEach((s) => {
-    wordDict.forEach((w, wi) => {
-      if (s.indexOf(wordDict[wi]) > -1 && !wordIdsToKeep.includes(wi)) {
-        wordIdsToKeep.push(wi);
-      }
-    });
-  });
-  wordIdsToDelete = [];
-  for (let i = 0; i < wordDict.length; i++) {
-    if (!wordIdsToKeep.includes(i)) {
-      wordIdsToDelete.push(i);
+const reduceWordDict = (s, wordDict, debug = false) => {
+  const wordDictOriginal = wordDict.map((w) => w);
+  for (let i = 0; i < wordDictOriginal.length; i++) {
+    if (!s.includes(wordDictOriginal[i])) {
+      wordDict.splice(wordDict.indexOf(wordDictOriginal[i]), 1);
     }
   }
-  // sorting in descending order so the splice operation still works correctly when iterating up the ids
-  wordIdsToDelete.sort((a, b) => b - a);
-  wordIdsToDelete.forEach((wid) => {
-    wordDict.splice(wid, 1);
-  });
-  if (debug)
-    console.log(
-      `wordDict length reduced from ${originalWordDictLength} to ${wordDict.length}`,
-      wordDict
-    );
+  if (debug) { console.log(`wordDict length reduced for string ${s} from ${wordDictOriginal.length} to ${wordDict.length}`, wordDictOriginal, wordDict); }
 };
 
-const isWordInString = (stringParts, wordDict, i, usedWords, debug = false) => {
-  if (debug) console.log(usedWords, stringParts);
-  const w = wordDict[i];
-  const stringPartsOneLevelDown = stringParts.map((stp) => stp);
+// const isWordInString = (stringParts, wordDict, i, usedWords, debug = false) => {
+//   if (debug) console.log(usedWords, stringParts);
+//   const w = wordDict[i];
+//   const stringPartsOneLevelDown = stringParts.map((stp) => stp);
 
-  // remove w from strings
-  let wordFoundAtLeastOnce = false;
-  for (let si = 0; si < stringParts.length; si++) {
-    const s = stringParts[si];
-    if (debug) console.log(`current stringPart ${s}, word is ${w}`);
+//   // remove w from strings
+//   let wordFoundAtLeastOnce = false;
+//   for (let si = 0; si < stringParts.length; si++) {
+//     const s = stringParts[si];
+//     if (debug) console.log(`current stringPart ${s}, word is ${w}`);
 
-    if (s.indexOf(w) > -1) {
-      wordFoundAtLeastOnce = true;
-      const sSplitW = s.split(w).filter((spl) => spl.length > 0);
+//     if (s.indexOf(w) > -1) {
+//       wordFoundAtLeastOnce = true;
+//       const sSplitW = s.split(w).filter((spl) => spl.length > 0);
 
-      stringPartsOneLevelDown.splice(si, 1);
-      // in case the same stringPart occures more than once
-      while (stringPartsOneLevelDown.indexOf(w) > -1) {
-        stringPartsOneLevelDown.splice(stringPartsOneLevelDown.indexOf(w), 1);
-      }
-      stringPartsOneLevelDown.push(
-        ...sSplitW.filter((sp) => sp != w && sp.length > 0)
-      );
-      if (debug)
-        console.log(
-          `is there a ${w} in ${s}? => ${sSplitW}. These are the remaining stringParts: ${stringPartsOneLevelDown}.`
-        );
+//       stringPartsOneLevelDown.splice(si, 1);
+//       // in case the same stringPart occures more than once
+//       while (stringPartsOneLevelDown.indexOf(w) > -1) {
+//         stringPartsOneLevelDown.splice(stringPartsOneLevelDown.indexOf(w), 1);
+//       }
+//       stringPartsOneLevelDown.push(
+//         ...sSplitW.filter((sp) => sp != w && sp.length > 0)
+//       );
+//       if (debug)
+//         console.log(
+//           `is there a ${w} in ${s}? => ${sSplitW}. These are the remaining stringParts: ${stringPartsOneLevelDown}.`
+//         );
 
-      // if nothing is left from the string, we succeeded
-      if (stringPartsOneLevelDown.length == 0) {
-        return true;
-      }
-    }
-  }
+//       // if nothing is left from the string, we succeeded
+//       if (stringPartsOneLevelDown.length == 0) {
+//         return true;
+//       }
+//     }
+//   }
 
-  // word has not been found in one of the stringParts
-  if (!wordFoundAtLeastOnce) {
-    if (debug) {
-      console.log(`there is no ${w} in ${s}. abandoning this order of words.`);
-    }
-    return false;
-  }
+//   // word has not been found in one of the stringParts
+//   if (!wordFoundAtLeastOnce) {
+//     if (debug) {
+//       console.log(`there is no ${w} in ${s}. abandoning this order of words.`);
+//     }
+//     return false;
+//   }
 
-  // reduct wordDict length by removing all words that have no matches in any member of stringParts
-  const wordDictOneLevelDown = wordDict.map((w) => w);
-  reduceWordDict(stringPartsOneLevelDown, wordDictOneLevelDown, debug);
+//   // reduct wordDict length by removing all words that have no matches in any member of stringParts
+//   const wordDictOneLevelDown = wordDict.map((w) => w);
+//   reduceWordDict(stringPartsOneLevelDown, wordDictOneLevelDown, debug);
 
-  // otherwise we need to try out all combinations of all other array members, that have not been tried out before
-  for (let j = 0; j < wordDictOneLevelDown.length; j++) {
-    if (!usedWords.includes(wordDictOneLevelDown[j])) {
-      // deep copy arrays that have been filled up until this level
-      const usedWordsOneLevelDown = usedWords.map((id) => id);
-      usedWordsOneLevelDown.push(w);
-      if (
-        isWordInString(
-          stringPartsOneLevelDown,
-          wordDictOneLevelDown,
-          j,
-          usedWordsOneLevelDown,
-          debug
-        ) == true
-      )
-        return true;
-    }
-  }
+//   // otherwise we need to try out all combinations of all other array members, that have not been tried out before
+//   for (let j = 0; j < wordDictOneLevelDown.length; j++) {
+//     if (!usedWords.includes(wordDictOneLevelDown[j])) {
+//       // deep copy arrays that have been filled up until this level
+//       const usedWordsOneLevelDown = usedWords.map((id) => id);
+//       usedWordsOneLevelDown.push(w);
+//       if (
+//         isWordInString(
+//           stringPartsOneLevelDown,
+//           wordDictOneLevelDown,
+//           j,
+//           usedWordsOneLevelDown,
+//           debug
+//         ) == true
+//       )
+//         return true;
+//     }
+//   }
 
-  // if there is something left in the string but no dict words to try left, we failed
-  if (usedWords.length == wordDict.length) {
-    return false;
-  }
-};
+//   // if there is something left in the string but no dict words to try left, we failed
+//   if (usedWords.length == wordDict.length) {
+//     return false;
+//   }
+// };
 
 let starttime = Date.now();
 console.log(
@@ -142,9 +139,9 @@ console.log(
 starttime = Date.now();
 console.log(
   "assert true 3",
-  wordBreak("ddadddbdddadd", ["dd","ad","da","b"]),
-  Date.now() - starttime,
-  true
+  wordBreak("ddadddbdddadd", ["dd", "ad", "da", "b"],
+    true),
+  Date.now() - starttime
 );
 
 starttime = Date.now();

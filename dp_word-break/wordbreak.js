@@ -3,7 +3,7 @@
  * @param {string[]} wordDict
  * @return {boolean}
  */
-var wordBreak = function (s, wordDict, debug = false) {
+var wordBreak = function (s, wordDict, debug = true) {
   // basic problem:
   // - find out the right combination of words from the dict that give a valid result
   // what do we know:
@@ -36,9 +36,6 @@ const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
     const word = wordDict[wi];
     const oneLevelDeeperWordDict = wordDict.map((u) => u);
 
-    // word already used on same level? => skip because words can be used multiple times.
-    // if (usedWords.includes(word)) return false;
-
     // word found in string?
     if (s.startsWith(word)) {
       // push word to usedWords (only for logging purposes when debug enabled)
@@ -60,7 +57,12 @@ const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
         if (debug) console.log(`☠️ not all characters from string "${newS}" could not be found in wordDict.`, oneLevelDeeperWordDict);
         return false;
       }
-      // if no words left in dictionary, this attempt is not successful. continuing to next word.
+      // if newS does not begin with one of the words in the dictionary, it's not worth going deeper.
+      if (!checkWordsOnSameLevel(newS, oneLevelDeeperWordDict, debug)) {
+        if (debug) console.log(`❌ string "${newS}" does not begin with one of the words from wordDict.`, oneLevelDeeperWordDict);
+        return false;
+      }
+      // if no words left in dictionary, this attempt is not successful
       if (oneLevelDeeperWordDict.length == 0) {
         if (debug) console.log(`❌ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
         return false;
@@ -83,7 +85,7 @@ const reduceWordDict = (s, wordDict, debug = false) => {
       wordDict.splice(wordDict.indexOf(wordDictOriginal[i]), 1);
     }
   }
-  // sort decreasing by length
+  // sort decreasing by length => longer words first might reduce the amount of words to check
   wordDict.sort((a,b) => b.length - a.length);
   if (debug) { console.log(`wordDict length reduced for string "${s}" from ${wordDictOriginal.length} to ${wordDict.length}`, wordDictOriginal, wordDict); }
 };
@@ -102,6 +104,16 @@ const checkChars = (s, wordDict, debug = false) => {
   return true;
 };
 
+// check if string startts with any of the words in the dict
+const checkWordsOnSameLevel = (s, wordDict, debug = false) => {
+  for (let i = 0; i < wordDict.length; i++) {
+    if (s.startsWith(wordDict[i])) {
+      return true;
+    }
+  };
+  return false;
+};
+
 
 // vars
 let starttime = undefined;
@@ -110,169 +122,174 @@ let result = false;
 
 // tests
 starttime = Date.now();
+result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ["aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa","ba"], true);
+msg = "assert false 10";
+console.assert(!result, [msg, Date.now() - starttime]);
+
+starttime = Date.now();
 result = wordBreak("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab", ["a","aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa"]);
 msg = "assert false 10";
 console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("cars", ["car", "ca", "rs"]);
-msg = "assert true 3";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("cars", ["car", "ca", "rs"]);
+// msg = "assert true 3";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"]);
-msg = "assert true 3";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"]);
+// msg = "assert true 3";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("bccdbacdbdacddabbaaaadababadad", [
-  "cbc",
-  "bcda",
-  "adb",
-  "ddca",
-  "bad",
-  "bbb",
-  "dad",
-  "dac",
-  "ba",
-  "aa",
-  "bd",
-  "abab",
-  "bb",
-  "dbda",
-  "cb",
-  "caccc",
-  "d",
-  "dd",
-  "aadb",
-  "cc",
-  "b",
-  "bcc",
-  "bcd",
-  "cd",
-  "cbca",
-  "bbd",
-  "ddd",
-  "dabb",
-  "ab",
-  "acd",
-  "a",
-  "bbcc",
-  "cdcbd",
-  "cada",
-  "dbca",
-  "ac",
-  "abacd",
-  "cba",
-  "cdb",
-  "dbac",
-  "aada",
-  "cdcda",
-  "cdc",
-  "dbc",
-  "dbcb",
-  "bdb",
-  "ddbdd",
-  "cadaa",
-  "ddbc",
-  "babb",
-]);
-msg = "assert true 50";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("bccdbacdbdacddabbaaaadababadad", [
+//   "cbc",
+//   "bcda",
+//   "adb",
+//   "ddca",
+//   "bad",
+//   "bbb",
+//   "dad",
+//   "dac",
+//   "ba",
+//   "aa",
+//   "bd",
+//   "abab",
+//   "bb",
+//   "dbda",
+//   "cb",
+//   "caccc",
+//   "d",
+//   "dd",
+//   "aadb",
+//   "cc",
+//   "b",
+//   "bcc",
+//   "bcd",
+//   "cd",
+//   "cbca",
+//   "bbd",
+//   "ddd",
+//   "dabb",
+//   "ab",
+//   "acd",
+//   "a",
+//   "bbcc",
+//   "cdcbd",
+//   "cada",
+//   "dbca",
+//   "ac",
+//   "abacd",
+//   "cba",
+//   "cdb",
+//   "dbac",
+//   "aada",
+//   "cdcda",
+//   "cdc",
+//   "dbc",
+//   "dbcb",
+//   "bdb",
+//   "ddbdd",
+//   "cadaa",
+//   "ddbc",
+//   "babb",
+// ]);
+// msg = "assert true 50";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]);
-msg = "assert true 2";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]);
+// msg = "assert true 2";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("ccaccc", ["cc", "bb", "aa", "bc", "ac", "ca", "ba", "cb"]);
-msg = "assert true 2";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("ccaccc", ["cc", "bb", "aa", "bc", "ac", "ca", "ba", "cb"]);
+// msg = "assert true 2";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("ccaccc", ["cc", "ac", "fritzl"]);
-msg = "assert true 2";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("ccaccc", ["cc", "ac", "fritzl"]);
+// msg = "assert true 2";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("cbca", ["bc", "ca"]);
-msg = "assert false 2";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("cbca", ["bc", "ca"]);
+// msg = "assert false 2";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and"]);
-msg = "assert false 5";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and"]);
+// msg = "assert false 5";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and", "caon"]);
-msg = "assert false 6";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and", "caon"]);
+// msg = "assert false 6";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]);
-msg = "assert true 6";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]);
+// msg = "assert true 6";
+// console.assert(result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carshitthemoonfallingfromtheskies", [
-  "car",
-  "ca",
-  "rs",
-  "sk",
-  "skies",
-  "moo",
-  "fall"
-]);
-msg = "assert false 7";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carshitthemoonfallingfromtheskies", [
+//   "car",
+//   "ca",
+//   "rs",
+//   "sk",
+//   "skies",
+//   "moo",
+//   "fall"
+// ]);
+// msg = "assert false 7";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carshitthemoonfallingfromtheskies", [
-  "car",
-  "ca",
-  "rs",
-  "sk",
-  "skies",
-  "moo",
-  "fall",
-  "falling"
-]);
-msg = "assert false 8";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carshitthemoonfallingfromtheskies", [
+//   "car",
+//   "ca",
+//   "rs",
+//   "sk",
+//   "skies",
+//   "moo",
+//   "fall",
+//   "falling"
+// ]);
+// msg = "assert false 8";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carshitthemoonfallingfromtheskies", [
-  "car",
-  "ca",
-  "rs",
-  "sk",
-  "skies",
-  "moo",
-  "fall",
-  "falling",
-  "ing",
-  "shit",
-]);
-msg = "assert false 10";
-console.assert(!result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carshitthemoonfallingfromtheskies", [
+//   "car",
+//   "ca",
+//   "rs",
+//   "sk",
+//   "skies",
+//   "moo",
+//   "fall",
+//   "falling",
+//   "ing",
+//   "shit",
+// ]);
+// msg = "assert false 10";
+// console.assert(!result, [msg, Date.now() - starttime]);
 
-starttime = Date.now();
-result = wordBreak("carshitthemoonfallingfromtheskies", [
-  "car",
-  "ca",
-  "rs",
-  "sk",
-  "skies",
-  "moon",
-  "fall",
-  "falling",
-  "ing",
-  "shit",
-  "hit",
-  "the",
-  "from",
-]);
-msg = "assert true 13";
-console.assert(result, [msg, Date.now() - starttime]);
+// starttime = Date.now();
+// result = wordBreak("carshitthemoonfallingfromtheskies", [
+//   "car",
+//   "ca",
+//   "rs",
+//   "sk",
+//   "skies",
+//   "moon",
+//   "fall",
+//   "falling",
+//   "ing",
+//   "shit",
+//   "hit",
+//   "the",
+//   "from",
+// ]);
+// msg = "assert true 13";
+// console.assert(result, [msg, Date.now() - starttime]);

@@ -17,309 +17,233 @@ var wordBreak = function (s, wordDict, debug = false) {
   // - memoization of string results not possible because different words are taken out
   // - does it make sense to sort the list by length and start with the shortest words?
 
-  reduceWordDict([s], wordDict, debug);
-
+  // reduce wordDict one time for complete string
+  reduceWordDict(s, wordDict, debug);
+  
   for (let i = 0; i < wordDict.length; i++) {
-    let usedWords = [];
-    let stringParts = [s];
-    if (isWordInString(stringParts, wordDict, i, usedWords, debug) == true)
-      return true;
+    if (findWord(s, wordDict, i, [], debug) == true) return true;
   }
+  if (debug) console.log(`☠️ string "${s}" could not be matched with any words from wordDict.`, wordDict);
   return false;
 };
 
+// match words from dict in string
+const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
+    const word = wordDict[wi];
+    const oneLevelDeeperWordDict = wordDict.map((u) => u);
+
+    // word already used on same level? => skip because words can be used multiple times.
+    // if (usedWords.includes(word)) return false;
+
+    // word found in string?
+    if (s.startsWith(word)) {
+      // push word to usedWords (only for logging purposes when debug enabled)
+      if (debug) usedWords.push(word);
+
+      // remove word from string
+      const newS = s.substring(word.length);
+      if (debug) console.log(`found word "${word}" in "${s}". new string: "${newS}"`);
+
+      // if string is empty, the word order was successful
+      if (newS.length == 0) {
+        if (debug) console.log(`✅ string is empty. word order successful.`, usedWords);
+        return true;
+      }
+
+      // reduce wordDict for new string
+      reduceWordDict(newS, oneLevelDeeperWordDict, debug);
+      // if no words left in dictionary, this attempt is not successful. continuing to next word.
+      if (oneLevelDeeperWordDict.length == 0) {
+        if (debug) console.log(`❌ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
+        return false;
+      }
+
+      for (let wj = 0; wj < oneLevelDeeperWordDict.length; wj++) {
+        let oneLevelDeeperUsedWords = [];
+        // pass deep copy of usedWords to keep the original for more attempts on same level (only for logging purposes when debug enabled)
+        if (debug) oneLevelDeeperUsedWords = usedWords.map((u) => u);
+        if (findWord(newS, oneLevelDeeperWordDict, wj, oneLevelDeeperUsedWords, debug) == true) return true;
+      }
+  }
+}
+
 // removing every word that has no match in one of the strings
-const reduceWordDict = (stringArray, wordDict, debug = false) => {
-  const originalWordDictLength = wordDict.length;
-  const wordIdsToKeep = [];
-  stringArray.forEach((s) => {
-    wordDict.forEach((w, wi) => {
-      if (s.indexOf(wordDict[wi]) > -1 && !wordIdsToKeep.includes(wi)) {
-        wordIdsToKeep.push(wi);
-      }
-    });
-  });
-  wordIdsToDelete = [];
-  for (let i = 0; i < wordDict.length; i++) {
-    if (!wordIdsToKeep.includes(i)) {
-      wordIdsToDelete.push(i);
+const reduceWordDict = (s, wordDict, debug = false) => {
+  const wordDictOriginal = wordDict.map((w) => w);
+  for (let i = 0; i < wordDictOriginal.length; i++) {
+    if (!s.includes(wordDictOriginal[i])) {
+      wordDict.splice(wordDict.indexOf(wordDictOriginal[i]), 1);
     }
   }
-  // sorting in descending order so the splice operation still works correctly when iterating up the ids
-  wordIdsToDelete.sort((a, b) => b - a);
-  wordIdsToDelete.forEach((wid) => {
-    wordDict.splice(wid, 1);
-  });
-  if (debug)
-    console.log(
-      `wordDict length reduced from ${originalWordDictLength} to ${wordDict.length}`,
-      wordDict
-    );
+  if (debug) { console.log(`wordDict length reduced for string "${s}" from ${wordDictOriginal.length} to ${wordDict.length}`, wordDictOriginal, wordDict); }
 };
 
-const isWordInString = (stringParts, wordDict, i, usedWords, debug = false) => {
-  if (debug) console.log(usedWords, stringParts);
-  const w = wordDict[i];
-  const stringPartsOneLevelDown = stringParts.map((stp) => stp);
 
-  // remove w from strings
-  let wordFoundAtLeastOnce = false;
-  for (let si = 0; si < stringParts.length; si++) {
-    const s = stringParts[si];
-    if (debug) console.log(`current stringPart ${s}, word is ${w}`);
+// vars
+let starttime = undefined;
+let msg = '';
+let result = false;
 
-    if (s.indexOf(w) > -1) {
-      wordFoundAtLeastOnce = true;
-      const sSplitW = s.split(w).filter((spl) => spl.length > 0);
-
-      stringPartsOneLevelDown.splice(si, 1);
-      // in case the same stringPart occures more than once
-      while (stringPartsOneLevelDown.indexOf(w) > -1) {
-        stringPartsOneLevelDown.splice(stringPartsOneLevelDown.indexOf(w), 1);
-      }
-      stringPartsOneLevelDown.push(
-        ...sSplitW.filter((sp) => sp != w && sp.length > 0)
-      );
-      if (debug)
-        console.log(
-          `is there a ${w} in ${s}? => ${sSplitW}. These are the remaining stringParts: ${stringPartsOneLevelDown}.`
-        );
-
-      // if nothing is left from the string, we succeeded
-      if (stringPartsOneLevelDown.length == 0) {
-        return true;
-      }
-    }
-  }
-
-  // word has not been found in one of the stringParts
-  if (!wordFoundAtLeastOnce) {
-    if (debug) {
-      console.log(`there is no ${w} in ${s}. abandoning this order of words.`);
-    }
-    return false;
-  }
-
-  // reduct wordDict length by removing all words that have no matches in any member of stringParts
-  const wordDictOneLevelDown = wordDict.map((w) => w);
-  reduceWordDict(stringPartsOneLevelDown, wordDictOneLevelDown, debug);
-
-  // otherwise we need to try out all combinations of all other array members, that have not been tried out before
-  for (let j = 0; j < wordDictOneLevelDown.length; j++) {
-    if (!usedWords.includes(wordDictOneLevelDown[j])) {
-      // deep copy arrays that have been filled up until this level
-      const usedWordsOneLevelDown = usedWords.map((id) => id);
-      usedWordsOneLevelDown.push(w);
-      if (
-        isWordInString(
-          stringPartsOneLevelDown,
-          wordDictOneLevelDown,
-          j,
-          usedWordsOneLevelDown,
-          debug
-        ) == true
-      )
-        return true;
-    }
-  }
-
-  // if there is something left in the string but no dict words to try left, we failed
-  if (usedWords.length == wordDict.length) {
-    return false;
-  }
-};
-
-let starttime = Date.now();
-console.log(
-  "assert true 3",
-  wordBreak("cars", ["car", "ca", "rs"]),
-  Date.now() - starttime
-);
-
-// the issue is: "a space-separated sequence of words" => think from left to right!
-// ["dd","ad","da","b"] => "dd ad dd b dd da dd"
-// the code does this: is there a dd in ddadddbdddadd? => a,db,da. These are the remaining stringParts: a,db,da. 
+// tests
 starttime = Date.now();
-console.log(
-  "assert true 3",
-  wordBreak("ddadddbdddadd", ["dd","ad","da","b"]),
-  Date.now() - starttime,
-  true
-);
+result = wordBreak("cars", ["car", "ca", "rs"]);
+msg = "assert true 3";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 50",
-  wordBreak("bccdbacdbdacddabbaaaadababadad", [
-    "cbc",
-    "bcda",
-    "adb",
-    "ddca",
-    "bad",
-    "bbb",
-    "dad",
-    "dac",
-    "ba",
-    "aa",
-    "bd",
-    "abab",
-    "bb",
-    "dbda",
-    "cb",
-    "caccc",
-    "d",
-    "dd",
-    "aadb",
-    "cc",
-    "b",
-    "bcc",
-    "bcd",
-    "cd",
-    "cbca",
-    "bbd",
-    "ddd",
-    "dabb",
-    "ab",
-    "acd",
-    "a",
-    "bbcc",
-    "cdcbd",
-    "cada",
-    "dbca",
-    "ac",
-    "abacd",
-    "cba",
-    "cdb",
-    "dbac",
-    "aada",
-    "cdcda",
-    "cdc",
-    "dbc",
-    "dbcb",
-    "bdb",
-    "ddbdd",
-    "cadaa",
-    "ddbc",
-    "babb",
-  ]),
-  Date.now() - starttime
-); /// too time-consuming even with wirdDict reduction
+result = wordBreak("ddadddbdddadd", ["dd","ad","da","b"]);
+msg = "assert true 3";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 2",
-  wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]),
-  Date.now() - starttime
-);
+result = wordBreak("bccdbacdbdacddabbaaaadababadad", [
+  "cbc",
+  "bcda",
+  "adb",
+  "ddca",
+  "bad",
+  "bbb",
+  "dad",
+  "dac",
+  "ba",
+  "aa",
+  "bd",
+  "abab",
+  "bb",
+  "dbda",
+  "cb",
+  "caccc",
+  "d",
+  "dd",
+  "aadb",
+  "cc",
+  "b",
+  "bcc",
+  "bcd",
+  "cd",
+  "cbca",
+  "bbd",
+  "ddd",
+  "dabb",
+  "ab",
+  "acd",
+  "a",
+  "bbcc",
+  "cdcbd",
+  "cada",
+  "dbca",
+  "ac",
+  "abacd",
+  "cba",
+  "cdb",
+  "dbac",
+  "aada",
+  "cdcda",
+  "cdc",
+  "dbc",
+  "dbcb",
+  "bdb",
+  "ddbdd",
+  "cadaa",
+  "ddbc",
+  "babb",
+]);
+msg = "assert true 50";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 2",
-  wordBreak("ccaccc", ["cc", "bb", "aa", "bc", "ac", "ca", "ba", "cb"]),
-  Date.now() - starttime
-);
+result = wordBreak("catskicatcats", ["cats", "cat", "dog", "ski"]);
+msg = "assert true 2";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 2",
-  wordBreak("ccaccc", ["cc", "ac", "fritzl"]),
-  Date.now() - starttime
-);
+result = wordBreak("ccaccc", ["cc", "bb", "aa", "bc", "ac", "ca", "ba", "cb"]);
+msg = "assert true 2";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 2",
-  wordBreak("cbca", ["bc", "ca"]),
-  Date.now() - starttime
-);
+result = wordBreak("ccaccc", ["cc", "ac", "fritzl"]);
+msg = "assert true 2";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 5",
-  wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and"]),
-  Date.now() - starttime
-);
+result = wordBreak("cbca", ["bc", "ca"]);
+msg = "assert false 2";
+console.assert(!result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 6",
-  wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and", "caon"]),
-  Date.now() - starttime
-);
+result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and"]);
+msg = "assert false 5";
+console.assert(!result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 6",
-  wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]),
-  Date.now() - starttime
-);
+result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "and", "caon"]);
+msg = "assert false 6";
+console.assert(!result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 7",
-  wordBreak("carshitthemoonfallingfromtheskies", [
-    "car",
-    "ca",
-    "rs",
-    "sk",
-    "skies",
-    "moo",
-    "fall",
-  ]),
-  Date.now() - starttime
-); // (takes 1.5 sec)
+result = wordBreak("carsandmoon", ["car", "ca", "rs", "mo", "moon", "and"]);
+msg = "assert true 6";
+console.assert(result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 8",
-  wordBreak("carshitthemoonfallingfromtheskies", [
-    "car",
-    "ca",
-    "rs",
-    "sk",
-    "skies",
-    "moo",
-    "fall",
-    "falling",
-  ]),
-  Date.now() - starttime
-);
+result = wordBreak("carshitthemoonfallingfromtheskies", [
+  "car",
+  "ca",
+  "rs",
+  "sk",
+  "skies",
+  "moo",
+  "fall"
+]);
+msg = "assert false 7";
+console.assert(!result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert false 10",
-  wordBreak("carshitthemoonfallingfromtheskies", [
-    "car",
-    "ca",
-    "rs",
-    "sk",
-    "skies",
-    "moo",
-    "fall",
-    "falling",
-    "ing",
-    "shit",
-  ]),
-  Date.now() - starttime
-);
+result = wordBreak("carshitthemoonfallingfromtheskies", [
+  "car",
+  "ca",
+  "rs",
+  "sk",
+  "skies",
+  "moo",
+  "fall",
+  "falling"
+]);
+msg = "assert false 8";
+console.assert(!result, [msg, Date.now() - starttime]);
 
 starttime = Date.now();
-console.log(
-  "assert true 13",
-  wordBreak("carshitthemoonfallingfromtheskies", [
-    "car",
-    "ca",
-    "rs",
-    "sk",
-    "skies",
-    "moon",
-    "fall",
-    "falling",
-    "ing",
-    "shit",
-    "hit",
-    "the",
-    "from",
-  ]),
-  Date.now() - starttime
-);
+result = wordBreak("carshitthemoonfallingfromtheskies", [
+  "car",
+  "ca",
+  "rs",
+  "sk",
+  "skies",
+  "moo",
+  "fall",
+  "falling",
+  "ing",
+  "shit",
+]);
+msg = "assert false 10";
+console.assert(!result, [msg, Date.now() - starttime]);
+
+starttime = Date.now();
+result = wordBreak("carshitthemoonfallingfromtheskies", [
+  "car",
+  "ca",
+  "rs",
+  "sk",
+  "skies",
+  "moon",
+  "fall",
+  "falling",
+  "ing",
+  "shit",
+  "hit",
+  "the",
+  "from",
+]);
+msg = "assert true 13";
+console.assert(result, [msg, Date.now() - starttime]);

@@ -23,7 +23,7 @@ var wordBreak = function (s, wordDict, debug = false) {
   for (let i = 0; i < wordDict.length; i++) {
     if (findWord(s, wordDict, i, [], debug) == true) return true;
   }
-  if (debug) console.log(`❌ beginning of string ${s} could not be matched with any words from wordDict.`, wordDict);
+  if (debug) console.log(`☠️ string "${s}" could not be matched with any words from wordDict.`, wordDict);
   return false;
 };
 
@@ -54,7 +54,7 @@ const findWord = (s, wordDict, wi, usedWords = [], debug = false) => {
       reduceWordDict(newS, oneLevelDeeperWordDict, debug);
       // if no words left in dictionary, this attempt is not successful. continuing to next word.
       if (oneLevelDeeperWordDict.length == 0) {
-        if (debug) console.log(`❌ string ${newS} is not empty and no dictionary words match. word order not successful.`, usedWords);
+        if (debug) console.log(`❌ string "${newS}" is not empty and no dictionary words match. word order not successful.`, usedWords);
         return false;
       }
 
